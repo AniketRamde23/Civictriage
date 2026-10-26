@@ -67,8 +67,10 @@ app.add_middleware(
 class VercelPathMiddleware:
     """
     ASGI middleware to restore the original client request path on Vercel.
-    When Vercel rewrites incoming traffic to /api/index.py, headers like 'x-forwarded-uri',
-    'x-matched-path', or 'x-invoke-path' convey the client's actual requested URL path.
+    Checks:
+    1. Query parameter '__path' passed via vercel.json rewrite
+    2. Headers: 'x-forwarded-uri', 'x-matched-path', or 'x-invoke-path'
+    3. Direct hits to /api/index.py or /api/index
     """
 
     def __init__(self, inner_app):
@@ -76,19 +78,42 @@ class VercelPathMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope.get("type") == "http":
-            raw_headers = dict(scope.get("headers", []))
-            forwarded_uri = (
-                raw_headers.get(b"x-forwarded-uri")
-                or raw_headers.get(b"x-matched-path")
-                or raw_headers.get(b"x-invoke-path")
-            )
+            target_path = None
 
-            if forwarded_uri:
-                decoded = forwarded_uri.decode("utf-8", errors="ignore").split("?")[0]
-                if decoded:
-                    scope["path"] = decoded
+            # 1. Check query parameter __path
+            qs_bytes = scope.get("query_string", b"")
+            if b"__path=" in qs_bytes:
+                try:
+                    from urllib.parse import parse_qs, urlencode
+                    qs_str = qs_bytes.decode("utf-8", errors="ignore")
+                    params = parse_qs(qs_str)
+                    if "__path" in params and params["__path"]:
+                        target_path = params["__path"][0]
+                        params.pop("__path", None)
+                        scope["query_string"] = urlencode(params, doseq=True).encode("ascii")
+                except Exception:
+                    pass
 
-            # If path matches serverless entrypoint directly, treat as root index
+            # 2. Check headers
+            if not target_path:
+                raw_headers = dict(scope.get("headers", []))
+                forwarded_uri = (
+                    raw_headers.get(b"x-forwarded-uri")
+                    or raw_headers.get(b"x-matched-path")
+                    or raw_headers.get(b"x-invoke-path")
+                )
+                if forwarded_uri:
+                    decoded = forwarded_uri.decode("utf-8", errors="ignore").split("?")[0]
+                    if decoded and decoded not in ("/api/index.py", "/api/index", "/api/index/"):
+                        target_path = decoded
+
+            # 3. Apply target path if found
+            if target_path:
+                if not target_path.startswith("/"):
+                    target_path = "/" + target_path
+                scope["path"] = target_path
+
+            # 4. If path matches serverless entrypoint directly, treat as root index
             if scope.get("path") in ("/api/index.py", "/api/index", "/api/index/"):
                 scope["path"] = "/"
 
@@ -589,12 +614,20 @@ async def api_export_csv(user: Dict[str, Any] = Depends(get_current_user)):
 # ---------------------------------------------------------------------------
 # Static Web App & Fallback Frontend Routes
 # ---------------------------------------------------------------------------
-static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-if not os.path.exists(static_dir):
-    alt_dir = os.path.join(os.getcwd(), "static")
-    if os.path.exists(alt_dir):
-        static_dir = alt_dir
+def find_static_dir() -> str:
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"),
+        os.path.join(os.getcwd(), "static"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static"),
+        os.path.abspath("static"),
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.isdir(c):
+            return c
+    return candidates[0]
 
+
+static_dir = find_static_dir()
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
