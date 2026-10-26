@@ -13,15 +13,113 @@ load_dotenv()
 DEFAULT_DB_PATH = os.getenv("DATABASE_PATH", "civictriage.db")
 
 
+def get_default_db_path() -> str:
+    """Return the database path, automatically falling back to /tmp in read-only / serverless environments."""
+    env_path = os.getenv("DATABASE_PATH")
+    if env_path:
+        return env_path
+    # On Vercel, AWS Lambda, or serverless environments with read-only root, use /tmp
+    if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+        return "/tmp/civictriage.db"
+
+    # Check if local project directory is writable
+    local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "civictriage.db")
+    try:
+        test_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".__write_test__")
+        with open(test_file, "w") as f:
+            f.write("1")
+        os.remove(test_file)
+        return local_path
+    except (OSError, IOError):
+        return "/tmp/civictriage.db"
+
+
 def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """Return a thread-safe connection to the SQLite database with row factory enabled."""
-    path = db_path or os.getenv("DATABASE_PATH", DEFAULT_DB_PATH)
+    path = db_path or get_default_db_path()
+    parent_dir = os.path.dirname(os.path.abspath(path))
+    if parent_dir and not os.path.exists(parent_dir):
+        try:
+            os.makedirs(parent_dir, exist_ok=True)
+        except Exception:
+            pass
+
     conn = sqlite3.connect(path, timeout=30.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    # Enable WAL mode for concurrent reads and writes
-    conn.execute("PRAGMA journal_mode=WAL;")
+    # On serverless (Vercel/Lambda), avoid WAL mode as shared memory is restricted
+    try:
+        if os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"):
+            conn.execute("PRAGMA journal_mode=DELETE;")
+        else:
+            conn.execute("PRAGMA journal_mode=WAL;")
+    except Exception:
+        pass
     conn.execute("PRAGMA foreign_keys=ON;")
     return conn
+
+
+def _auto_seed_initial_data(conn: sqlite3.Connection) -> None:
+    """Automatically seeds default demo accounts and sample grievances on fresh DB init."""
+    import csv
+    from core.auth import hash_password
+
+    cursor = conn.cursor()
+    # 1. Citizen Demo Account (citizen@example.com / Citizen123)
+    cursor.execute(
+        "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+        ("Ramesh Sharma (Citizen)", "citizen@example.com", hash_password("Citizen123"), "citizen")
+    )
+    cit_id = cursor.lastrowid
+
+    # 2. Officer Demo Account (officer@civictriage.gov.in / Officer123)
+    cursor.execute(
+        "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
+        ("Officer Priya Deshmukh", "officer@civictriage.gov.in", hash_password("Officer123"), "officer")
+    )
+    off_id = cursor.lastrowid
+
+    # 3. Seed grievances from CSV if available
+    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "labelled_grievances.csv")
+    if os.path.exists(csv_path):
+        try:
+            with open(csv_path, "r", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                count = 0
+                for row in reader:
+                    status = "Received" if count % 3 == 0 else "In Progress" if count % 3 == 1 else "Resolved"
+                    cursor.execute(
+                        """
+                        INSERT INTO grievances (
+                            user_id, ward, original_text, detected_language,
+                            english_summary, emotion, priority, category, reason, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            cit_id,
+                            row.get("ward", "Ward 1"),
+                            row.get("text", ""),
+                            row.get("language", "en"),
+                            row.get("gold_summary", ""),
+                            row.get("gold_emotion", "Neutral"),
+                            row.get("gold_priority", "Routine"),
+                            row.get("gold_category", "Other"),
+                            f"Gold standard labelled record. Triage priority: {row.get('gold_priority', 'Routine')}.",
+                            status
+                        )
+                    )
+                    g_id = cursor.lastrowid
+                    if status in ("In Progress", "Resolved"):
+                        cursor.execute(
+                            """
+                            INSERT INTO status_notes (grievance_id, officer_id, note)
+                            VALUES (?, ?, ?)
+                            """,
+                            (g_id, off_id, "Standard inspection logged by ward officer.")
+                        )
+                    count += 1
+            conn.commit()
+        except Exception:
+            pass
 
 
 def init_db(db_path: Optional[str] = None) -> None:
@@ -83,6 +181,17 @@ def init_db(db_path: Optional[str] = None) -> None:
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_status_notes_grievance ON status_notes(grievance_id);")
 
     conn.commit()
+
+    # Auto-seed demo accounts and initial grievances if default DB is newly initialized
+    try:
+        if db_path is None or db_path == DEFAULT_DB_PATH:
+            cursor.execute("SELECT COUNT(*) FROM users;")
+            user_count = cursor.fetchone()[0]
+            if user_count == 0:
+                _auto_seed_initial_data(conn)
+    except Exception:
+        pass
+
     conn.close()
 
 

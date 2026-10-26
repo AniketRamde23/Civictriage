@@ -251,24 +251,28 @@ class CivicTriageApp {
     // Ollama Engine Health Monitor
     // -----------------------------------------------------------------------
     async checkSystemHealth() {
-        const badge = document.getElementById('system-status-badge');
-        const text = document.getElementById('engine-status-text');
+        const sideStatus = document.getElementById('sidebar-system-status');
+        const sideText = document.getElementById('sidebar-engine-status-text');
+        const sideDot = document.getElementById('sidebar-engine-dot');
 
         try {
             const res = await fetch('/api/system/health');
             if (res.ok) {
                 const data = await res.json();
                 if (data.ollama_online) {
-                    badge.className = 'system-status-indicator online';
-                    text.innerHTML = `🟢 <b>Ollama Online</b> (${data.model})`;
+                    if (sideStatus) sideStatus.className = 'sidebar-system-status';
+                    if (sideText) sideText.textContent = `Ollama Online (${data.model || 'llama3.2:3b'})`;
+                    if (sideDot) sideDot.style.background = '#10b981';
                 } else {
-                    badge.className = 'system-status-indicator offline';
-                    text.innerHTML = `🟡 <b>Ollama Offline</b> (Review Mode)`;
+                    if (sideStatus) sideStatus.className = 'sidebar-system-status offline';
+                    if (sideText) sideText.textContent = `Ollama Offline (Review Mode)`;
+                    if (sideDot) sideDot.style.background = '#f59e0b';
                 }
             }
         } catch (e) {
-            badge.className = 'system-status-indicator offline';
-            text.innerHTML = `🟡 <b>Ollama Offline</b>`;
+            if (sideStatus) sideStatus.className = 'sidebar-system-status offline';
+            if (sideText) sideText.textContent = `Ollama Offline`;
+            if (sideDot) sideDot.style.background = '#f59e0b';
         }
     }
 
@@ -354,114 +358,80 @@ class CivicTriageApp {
 
     setUser(user) {
         this.state.user = user;
-        const profileWrapper = document.getElementById('user-profile-wrapper');
-        const unauthedCta = document.getElementById('auth-unauthed-cta');
-        const mainNav = document.getElementById('main-nav-links');
-        const navCitizen = document.getElementById('nav-btn-citizen');
-        const navOfficer = document.getElementById('nav-btn-officer');
+        const appLayout = document.getElementById('app-layout');
+        const authView = document.getElementById('view-auth');
 
         if (user) {
-            if (profileWrapper) profileWrapper.style.display = 'inline-block';
-            if (unauthedCta) unauthedCta.style.display = 'none';
-            if (mainNav) mainNav.style.display = 'flex';
+            if (authView) authView.style.display = 'none';
+            if (appLayout) appLayout.style.display = 'flex';
 
-            const isAdmin = user.role === 'admin' || user.role === 'officer' || (user.email && user.email.toLowerCase().includes('admin'));
-            const roleLabel = user.role === 'citizen' ? 'Citizen' : 'Administrator';
-            const roleClass = user.role === 'citizen' ? 'citizen' : 'admin';
-            const avatarChar = user.role === 'citizen' ? '👤' : '🏛️';
+            const isAdmin = user.role === 'admin' || user.role === 'officer' || (user.email && user.email.toLowerCase().includes('officer')) || (user.email && user.email.toLowerCase().includes('admin'));
+            const roleLabel = user.role === 'citizen' ? 'Citizen' : 'Officer';
+            const roleClass = user.role === 'citizen' ? 'citizen' : 'officer';
+            const avatarChar = user.role === 'citizen' ? '👤' : '👮';
 
-            document.getElementById('user-display-name').textContent = user.name;
-            const badge = document.getElementById('user-role-badge');
-            badge.textContent = roleLabel;
-            badge.className = `role-badge ${roleClass}`;
-            document.getElementById('user-avatar-icon').textContent = avatarChar;
+            // Populate Left Sidebar User Profile Card (Screen 2)
+            const sideName = document.getElementById('sidebar-user-name');
+            if (sideName) sideName.textContent = user.name;
+            const sideEmail = document.getElementById('sidebar-user-email');
+            if (sideEmail) sideEmail.textContent = user.email;
+            const sideAvatar = document.getElementById('sidebar-user-avatar');
+            if (sideAvatar) sideAvatar.textContent = avatarChar;
+            const sideBadge = document.getElementById('sidebar-role-badge');
+            if (sideBadge) {
+                sideBadge.textContent = roleLabel;
+                sideBadge.className = `role-badge ${roleClass}`;
+            }
 
-            // Populate Dropdown Card Elements
-            if (document.getElementById('dropdown-user-name')) document.getElementById('dropdown-user-name').textContent = user.name;
-            if (document.getElementById('dropdown-user-email')) document.getElementById('dropdown-user-email').textContent = user.email;
-            if (document.getElementById('dropdown-avatar-icon')) document.getElementById('dropdown-avatar-icon').textContent = avatarChar;
-            if (document.getElementById('dropdown-role-badge')) {
-                const dropBadge = document.getElementById('dropdown-role-badge');
-                dropBadge.textContent = roleLabel;
-                dropBadge.className = `role-badge ${roleClass}`;
-            }
-            if (document.getElementById('dropdown-ward-badge')) {
-                document.getElementById('dropdown-ward-badge').textContent = user.role === 'citizen' ? 'Ward 12 (Indiranagar)' : 'All Wards (Municipal HQ)';
-            }
-            if (document.getElementById('dropdown-workspace-sub')) {
-                document.getElementById('dropdown-workspace-sub').textContent = user.role === 'citizen' ? 'Submit & track issues' : 'Triage queue & status notes';
-            }
+            // Role-based Navigation Item Visibility
+            const sideNavCitizen = document.getElementById('side-nav-citizen');
+            const sideNavOfficer = document.getElementById('side-nav-officer');
 
             if (user.role === 'citizen') {
-                navCitizen.style.display = 'inline-flex';
-                navOfficer.style.display = 'none';
-                document.getElementById('citizen-greeting-text').textContent = `Logged in: ${user.name} (${user.email})`;
+                if (sideNavCitizen) sideNavCitizen.style.display = 'flex';
+                if (sideNavOfficer) sideNavOfficer.style.display = 'none';
+                const greeting = document.getElementById('citizen-greeting-text');
+                if (greeting) greeting.textContent = `Welcome, ${user.name} (${user.email})`;
             } else {
-                navCitizen.style.display = 'none';
-                navOfficer.style.display = 'inline-flex';
-                document.getElementById('officer-greeting-text').textContent = `${roleLabel}: ${user.name} (${user.email})`;
+                if (sideNavCitizen) sideNavCitizen.style.display = 'none';
+                if (sideNavOfficer) sideNavOfficer.style.display = 'flex';
+                const greeting = document.getElementById('officer-greeting-text');
+                if (greeting) greeting.textContent = `Logged in: ${user.name} (${user.email})`;
             }
         } else {
-            if (profileWrapper) profileWrapper.style.display = 'none';
-            if (unauthedCta) unauthedCta.style.display = 'flex';
-            if (mainNav) mainNav.style.display = 'none';
-            this.closeProfileDropdown();
+            if (appLayout) appLayout.style.display = 'none';
+            if (authView) authView.style.display = 'flex';
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Role Switching & Access Portal Handling
-    // -----------------------------------------------------------------------
-    selectAuthRole(role) {
-        this.state.authRole = role;
-        ['citizen', 'admin'].forEach(r => {
-            const btn = document.getElementById(`role-btn-${r}`);
-            if (btn) btn.classList.toggle('active', r === role);
-        });
-
-        const emailInput = document.getElementById('login-email');
-        const passInput = document.getElementById('login-password');
-        const submitLabel = document.getElementById('btn-submit-label');
-
-        if (role === 'citizen') {
-            if (emailInput) emailInput.value = 'citizen@example.com';
-            if (passInput) passInput.value = 'Citizen123';
-            if (submitLabel) submitLabel.textContent = 'Sign In as CITIZEN';
+    togglePasswordVisibility(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const btn = document.getElementById(btnId);
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (btn) btn.textContent = '🙈';
         } else {
-            // Default to Administrator
-            if (emailInput) emailInput.value = 'admin@civictriage.gov.in';
-            if (passInput) passInput.value = 'Admin123';
-            if (submitLabel) submitLabel.textContent = 'Sign In as ADMIN';
+            input.type = 'password';
+            if (btn) btn.textContent = '👁️';
         }
     }
 
     async quickDemoLogin(role) {
-        this.closeProfileDropdown();
-        this.selectAuthRole(role);
-        const email = document.getElementById('login-email').value;
-        const password = document.getElementById('login-password').value;
+        const emailInput = document.getElementById('login-email');
+        const passInput = document.getElementById('login-password');
+        let email = 'citizen@example.com';
+        let pass = 'Citizen123';
+
+        if (role === 'officer' || role === 'admin') {
+            email = 'officer@civictriage.gov.in';
+            pass = 'Officer123';
+        }
+
+        if (emailInput) emailInput.value = email;
+        if (passInput) passInput.value = pass;
         this.showToast(`Authenticating 1-click ${role} credentials...`, 'info');
-        await this.executeLogin(email, password);
-    }
-
-    fillDemoLogin(type) {
-        this.selectAuthRole(type);
-    }
-
-    showForgotPwHelp() {
-        this.showToast('Demo Credentials: Citizen (Citizen123) • Admin (Admin123). Use 1-Click buttons below!', 'info');
-    }
-
-    cycleLanguage() {
-        const langs = [
-            { code: 'en', label: 'English' },
-            { code: 'hi', label: 'हिन्दी (Hindi)' },
-            { code: 'te', label: 'తెలుగు (Telugu)' }
-        ];
-        const current = this.state.preferredLang || 'en';
-        const nextIdx = (langs.findIndex(l => l.code === current) + 1) % langs.length;
-        const nextLang = langs[nextIdx];
-        this.setUserPreferredLanguage(nextLang.code);
+        await this.executeLogin(email, pass);
     }
 
     setUserPreferredLanguage(langCode) {
@@ -469,13 +439,16 @@ class CivicTriageApp {
         localStorage.setItem('civictriage_lang', langCode);
         const labelMap = { en: 'English', hi: 'हिन्दी (Hindi)', te: 'తెలుగు (Telugu)' };
         const label = labelMap[langCode] || 'English';
-        const activeLangElem = document.getElementById('hero-active-lang');
-        if (activeLangElem) activeLangElem.textContent = label;
-        const currLangLabel = document.getElementById('current-lang-label');
-        if (currLangLabel) currLangLabel.textContent = label;
+
+        // Update pills active state
+        ['en', 'hi', 'te'].forEach(c => {
+            const pill = document.getElementById(`lang-pill-${c}`);
+            if (pill) pill.classList.toggle('active', c === langCode);
+        });
+
         const prefSelect = document.getElementById('prof-pref-lang');
         if (prefSelect) prefSelect.value = langCode;
-        this.showToast(`Interface language set to ${label}`, 'info');
+        this.showToast(`Language set to ${label}`, 'info');
     }
 
     // -----------------------------------------------------------------------
@@ -542,13 +515,19 @@ class CivicTriageApp {
         this.state.authTab = tab;
         const loginContent = document.getElementById('tab-login-content');
         const registerContent = document.getElementById('tab-register-content');
+        const btnSignIn = document.getElementById('tab-btn-signin');
+        const btnRegister = document.getElementById('tab-btn-register');
 
         if (tab === 'login') {
             if (loginContent) loginContent.style.display = 'block';
             if (registerContent) registerContent.style.display = 'none';
+            if (btnSignIn) btnSignIn.classList.add('active');
+            if (btnRegister) btnRegister.classList.remove('active');
         } else {
             if (registerContent) registerContent.style.display = 'block';
             if (loginContent) loginContent.style.display = 'none';
+            if (btnRegister) btnRegister.classList.add('active');
+            if (btnSignIn) btnSignIn.classList.remove('active');
         }
     }
 
@@ -561,7 +540,7 @@ class CivicTriageApp {
 
     async executeLogin(email, password) {
         const btn = document.getElementById('btn-submit-login');
-        const originalText = btn ? btn.innerHTML : 'Sign In';
+        const originalText = btn ? btn.innerHTML : 'Sign In to Portal';
 
         try {
             if (btn) {
@@ -663,24 +642,31 @@ class CivicTriageApp {
 
         this.state.activeTab = tabName;
 
-        // Toggle static non-scrolling single page viewport on auth view
+        const authView = document.getElementById('view-auth');
+        const appLayout = document.getElementById('app-layout');
+
         if (tabName === 'auth') {
+            if (authView) authView.style.display = 'flex';
+            if (appLayout) appLayout.style.display = 'none';
             document.body.classList.add('auth-view-active');
+            return;
         } else {
+            if (authView) authView.style.display = 'none';
+            if (appLayout) appLayout.style.display = 'flex';
             document.body.classList.remove('auth-view-active');
         }
 
-        const sections = ['auth', 'citizen', 'officer', 'insights'];
+        const sections = ['citizen', 'officer', 'insights'];
         sections.forEach(s => {
             const el = document.getElementById(`view-${s}`);
             if (el) el.style.display = s === tabName ? 'block' : 'none';
         });
 
-        // Update nav buttons
+        // Update sidebar nav radio indicators
         const navBtns = {
-            citizen: document.getElementById('nav-btn-citizen'),
-            officer: document.getElementById('nav-btn-officer'),
-            insights: document.getElementById('nav-btn-insights')
+            citizen: document.getElementById('side-nav-citizen'),
+            officer: document.getElementById('side-nav-officer'),
+            insights: document.getElementById('side-nav-insights')
         };
 
         Object.keys(navBtns).forEach(k => {
@@ -788,8 +774,29 @@ class CivicTriageApp {
                 this.showToast(`✅ Grievance #${res.grievance_id} registered immediately! Automated triage running.`, 'success');
                 textarea.value = '';
                 this.updateCharCount('');
-                // Switch to history tab to track
-                this.switchCitizenSubtab('history');
+
+                // Display Instant Triage Receipt Card in Submit View
+                const resultBox = document.getElementById('grievance-submission-result');
+                if (resultBox) {
+                    resultBox.style.display = 'block';
+                    const priorityClass = res.priority === 'Immediate' || res.priority === 'High' ? 'urgent' : res.priority === 'Soon' || res.priority === 'Medium' ? 'soon' : 'routine';
+                    resultBox.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.65rem;">
+                            <span style="font-weight: 700; color: #f8fafc; font-size: 1rem;">✅ Grievance #${res.grievance_id} Successfully Filed</span>
+                            <span class="role-badge ${priorityClass}" style="font-size: 0.8rem; padding: 3px 10px;">${res.priority || 'Immediate'} Priority</span>
+                        </div>
+                        <div style="color: #cbd5e1; font-size: 0.88rem; line-height: 1.5; margin-bottom: 0.5rem;">
+                            <strong>Category:</strong> ${res.category || 'General'} • <strong>Ward:</strong> ${res.ward || ward} • <strong>Language:</strong> ${(res.detected_language || 'en').toUpperCase()}
+                        </div>
+                        <div style="color: #94a3b8; font-size: 0.85rem; background: rgba(0,0,0,0.25); padding: 0.65rem 0.85rem; border-radius: 6px; border-left: 3px solid #38bdf8;">
+                            <strong>AI Summary:</strong> ${res.english_summary || 'Grievance intake logged into triage queue.'}<br>
+                            <small style="color: #64748b; margin-top: 4px; display: block;">${res.reason || 'Escalation safety check applied.'}</small>
+                        </div>
+                    `;
+                }
+
+                // Silently refresh history records
+                this.loadCitizenGrievances(true);
             }
         } catch (err) {
             this.showToast(err.message || 'Submission failed.', 'error');

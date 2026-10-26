@@ -17,6 +17,7 @@
     <canvas id="civic-bg-canvas"></canvas>
 
     <!-- Ambient Aurora Glow Orbs & Grid -->
+    <!-- Ambient Aurora Glow Orbs & Grid -->
     <div class="ambient-glow-wrapper" aria-hidden="true">
         <div class="ambient-orb orb-1"></div>
         <div class="ambient-orb orb-2"></div>
@@ -24,438 +25,278 @@
         <div class="ambient-city-grid"></div>
     </div>
 
-    <!-- Top Navigation Bar -->
-    <header class="app-header">
-        <div class="header-container">
-            <div class="header-brand" id="brand-logo" onclick="app.navigateHome()">
-                <div class="brand-icon">🏛️</div>
-                <div class="brand-info">
-                    <span class="brand-title">CivicTriage</span>
+    <!-- ======================================================== -->
+    <!-- SCREEN 1: Authentication View (Matching Screenshot 1)    -->
+    <!-- ======================================================== -->
+    <section class="auth-view-container" id="view-auth">
+        <!-- Centered Brand Header -->
+        <div class="auth-brand-cluster">
+            <div class="auth-brand-badge" title="CivicTriage Municipal Portal">🏛️</div>
+            <h1 class="auth-brand-title">CivicTriage</h1>
+            <p class="auth-brand-subtitle">
+                Multilingual Civic Grievance Triage & Urgency Ranking Platform
+            </p>
+
+            <!-- Language Pills -->
+            <div class="auth-lang-pills" role="tablist" aria-label="Language Selector">
+                <button type="button" class="lang-pill active" id="lang-pill-en" onclick="app.setUserPreferredLanguage('en')">
+                    English
+                </button>
+                <button type="button" class="lang-pill" id="lang-pill-hi" onclick="app.setUserPreferredLanguage('hi')">
+                    हिन्दी (Hindi)
+                </button>
+                <button type="button" class="lang-pill" id="lang-pill-te" onclick="app.setUserPreferredLanguage('te')">
+                    తెలుగు (Telugu)
+                </button>
+            </div>
+        </div>
+
+        <!-- Centered Authentication Card -->
+        <div class="auth-card">
+            <!-- Tabs: Sign In / Citizen Registration -->
+            <div class="auth-card-tabs" role="tablist">
+                <button type="button" class="auth-tab-btn active" id="tab-btn-signin" onclick="app.switchAuthTab('login')">
+                    🔑 Sign In
+                </button>
+                <button type="button" class="auth-tab-btn" id="tab-btn-register" onclick="app.switchAuthTab('register')">
+                    📋 Citizen Registration
+                </button>
+            </div>
+
+            <!-- Quick Demo Sign-In Bar -->
+            <div class="quick-demo-section">
+                <span class="quick-demo-label">Quick Demo Sign-In:</span>
+                <div class="quick-demo-buttons">
+                    <button type="button" class="btn-demo-pill" id="btn-demo-citizen" onclick="app.quickDemoLogin('citizen')" title="1-Click Login as Citizen">
+                        👤 Citizen Demo
+                    </button>
+                    <button type="button" class="btn-demo-pill" id="btn-demo-officer" onclick="app.quickDemoLogin('officer')" title="1-Click Login as Officer">
+                        👮 Officer Demo
+                    </button>
                 </div>
+            </div>
+
+            <!-- Sign In Form Content -->
+            <div id="tab-login-content">
+                <form id="form-login" onsubmit="app.handleLogin(event)">
+                    <div class="form-group-field">
+                        <label class="field-label" for="login-email">Email Address</label>
+                        <div class="field-input-wrapper">
+                            <input type="email" id="login-email" class="portal-input" placeholder="citizen@example.com" required autocomplete="email" value="citizen@example.com">
+                        </div>
+                    </div>
+
+                    <div class="form-group-field">
+                        <label class="field-label" for="login-password">Password</label>
+                        <div class="field-input-wrapper password-input-row">
+                            <input type="password" id="login-password" class="portal-input" placeholder="••••••••" required autocomplete="current-password" value="Citizen123">
+                            <button type="button" class="btn-toggle-eye" id="btn-toggle-login-pw" onclick="app.togglePasswordVisibility('login-password', 'btn-toggle-login-pw')" title="Toggle Password Visibility">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-portal-submit" id="btn-submit-login">
+                        Sign In to Portal
+                    </button>
+                </form>
+            </div>
+
+            <!-- Registration Form Content -->
+            <div id="tab-register-content" style="display: none;">
+                <form id="form-register" onsubmit="app.handleRegister(event)">
+                    <div class="form-group-field">
+                        <label class="field-label" for="reg-name">Full Name</label>
+                        <div class="field-input-wrapper">
+                            <input type="text" id="reg-name" class="portal-input" placeholder="e.g. Ramesh Sharma" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group-field">
+                        <label class="field-label" for="reg-email">Email Address</label>
+                        <div class="field-input-wrapper">
+                            <input type="email" id="reg-email" class="portal-input" placeholder="e.g. ramesh@example.com" required autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="form-group-field">
+                        <label class="field-label" for="reg-password">Password (Minimum 6 characters)</label>
+                        <div class="field-input-wrapper password-input-row">
+                            <input type="password" id="reg-password" class="portal-input" placeholder="Create password" minlength="6" required autocomplete="new-password">
+                            <button type="button" class="btn-toggle-eye" id="btn-toggle-reg-pw" onclick="app.togglePasswordVisibility('reg-password', 'btn-toggle-reg-pw')" title="Toggle Password Visibility">
+                                👁️
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-portal-submit" id="btn-submit-register">
+                        Create Citizen Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- AUTHENTICATED APP LAYOUT: Left Sidebar + Workspace       -->
+    <!-- ======================================================== -->
+    <div class="app-layout" id="app-layout" style="display: none;">
+        <!-- Left Sidebar (Matching Screenshot 2) -->
+        <aside class="app-sidebar" id="app-sidebar">
+            <!-- Sidebar Header Brand -->
+            <div class="sidebar-brand" onclick="app.navigateHome()">
+                <div class="sidebar-brand-icon">🏛️</div>
+                <span class="sidebar-brand-name">CivicTriage</span>
+            </div>
+
+            <!-- User Profile Box with Proper High-Contrast Typography -->
+            <div class="sidebar-user-card" id="sidebar-user-card" onclick="app.openProfileModal()" title="View profile & preferences">
+                <div class="sidebar-user-avatar" id="sidebar-user-avatar">👤</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name" id="sidebar-user-name">Ramesh Sharma (Citizen)</div>
+                    <div class="sidebar-user-email" id="sidebar-user-email">citizen@example.com</div>
+                    <div class="sidebar-user-badge-wrap">
+                        <span class="role-badge citizen" id="sidebar-role-badge">Citizen</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="sidebar-nav-section">
+                <div class="sidebar-nav-heading">Navigation</div>
+                <div class="sidebar-nav-sub">Go to:</div>
+                <nav class="sidebar-nav-list" role="navigation">
+                    <button type="button" class="sidebar-nav-item active" id="side-nav-citizen" onclick="app.showTab('citizen')">
+                        <span class="radio-indicator"></span>
+                        <span class="nav-item-label">📢 Citizen Portal</span>
+                    </button>
+                    <button type="button" class="sidebar-nav-item" id="side-nav-officer" onclick="app.showTab('officer')" style="display: none;">
+                        <span class="radio-indicator"></span>
+                        <span class="nav-item-label">📋 Officer Triage Queue</span>
+                    </button>
+                    <button type="button" class="sidebar-nav-item" id="side-nav-insights" onclick="app.showTab('insights')">
+                        <span class="radio-indicator"></span>
+                        <span class="nav-item-label">📊 Insights & Statistics</span>
+                    </button>
+                </nav>
             </div>
 
             <!-- System Health Status Badge -->
-            <div class="system-status-indicator" id="system-status-badge" title="AI Inference Engine Connectivity">
-                <span class="status-pulse-dot" id="engine-dot"></span>
-                <span id="engine-status-text">Checking Ollama...</span>
+            <div class="sidebar-system-status" id="sidebar-system-status" title="Inference Engine Health">
+                <span class="status-pulse-dot" id="sidebar-engine-dot"></span>
+                <span class="status-text" id="sidebar-engine-status-text">Ollama Online (llama3.2:3b)</span>
             </div>
 
-            <!-- Role-based Navigation Links -->
-            <nav class="nav-links" id="main-nav-links" style="display: none;">
-                <button type="button" class="nav-btn active" id="nav-btn-citizen" onclick="app.showTab('citizen')" style="display: none;">
-                    📢 Citizen Portal
+            <!-- Sidebar Sign Out & Theme Toggle -->
+            <div class="sidebar-footer">
+                <button type="button" class="sidebar-signout-btn" onclick="app.logout()" title="Sign Out of Portal">
+                    🚪 Sign Out
                 </button>
-                <button type="button" class="nav-btn" id="nav-btn-officer" onclick="app.showTab('officer')" style="display: none;">
-                    📋 Admin Triage Queue
-                </button>
-                <button type="button" class="nav-btn" id="nav-btn-insights" onclick="app.showTab('insights')">
-                    📊 Insights & Analytics
-                </button>
-            </nav>
-
-            <!-- Theme Toggle & User Actions -->
-            <div class="header-user-actions" id="user-actions">
-                <button type="button" class="btn-theme-toggle" id="btn-theme-toggle" onclick="app.toggleTheme()" title="Toggle Dark/Light Mode">
+                <button type="button" class="sidebar-theme-btn" id="btn-theme-toggle" onclick="app.toggleTheme()" title="Toggle Dark/Light Mode">
                     🌙
                 </button>
-
-                <!-- Interactive User Profile Pill with Dropdown Menu -->
-                <div class="user-profile-container" id="user-profile-wrapper" style="display: none;">
-                    <button type="button" class="user-pill-btn" id="user-profile-pill" onclick="app.toggleProfileDropdown()" title="Profile & Preferences">
-                        <div class="user-avatar" id="user-avatar-icon">👤</div>
-                        <div class="user-meta">
-                            <span class="user-name" id="user-display-name">Citizen</span>
-                            <span class="role-badge citizen" id="user-role-badge">Citizen</span>
-                        </div>
-                        <span class="dropdown-caret">▾</span>
-                    </button>
-
-                    <!-- Rich Profile Dropdown Menu -->
-                    <div class="user-profile-dropdown" id="user-profile-dropdown" style="display: none;">
-                        <div class="dropdown-user-header">
-                            <div class="dropdown-avatar" id="dropdown-avatar-icon">👤</div>
-                            <div class="dropdown-user-info">
-                                <div class="dropdown-user-name" id="dropdown-user-name">Ramesh Sharma</div>
-                                <div class="dropdown-user-email" id="dropdown-user-email">citizen@example.com</div>
-                                <div class="dropdown-badges">
-                                    <span class="role-badge citizen" id="dropdown-role-badge">Citizen</span>
-                                    <span class="ward-badge" id="dropdown-ward-badge">Ward 12 (Indiranagar)</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-divider"></div>
-
-                        <div class="dropdown-security-status">
-                            <span class="sec-dot"></span>
-                            <span><b>Zero Cloud Leaks:</b> 100% On-Premise Llama 3.2</span>
-                        </div>
-
-                        <div class="dropdown-divider"></div>
-
-                        <div class="dropdown-menu-list">
-                            <button type="button" class="dropdown-menu-item" onclick="app.openProfileModal()">
-                                <span class="item-icon">👤</span>
-                                <div class="item-text">
-                                    <strong>My Profile & Settings</strong>
-                                    <small>Account ID, preferred language, jurisdiction</small>
-                                </div>
-                            </button>
-                            <button type="button" class="dropdown-menu-item" onclick="app.showTab(app.state.user?.role === 'citizen' ? 'citizen' : 'officer'); app.closeProfileDropdown();">
-                                <span class="item-icon">📋</span>
-                                <div class="item-text">
-                                    <strong>My Workspace</strong>
-                                    <small id="dropdown-workspace-sub">View tickets & queue</small>
-                                </div>
-                            </button>
-                            <button type="button" class="dropdown-menu-item" onclick="app.toggleTheme()">
-                                <span class="item-icon" id="dropdown-theme-icon">🌙</span>
-                                <div class="item-text">
-                                    <strong>Appearance</strong>
-                                    <small>Toggle Dark / Light Mode</small>
-                                </div>
-                            </button>
-                        </div>
-
-                        <div class="dropdown-divider"></div>
-
-                        <!-- 1-Click Role Switcher Inside Profile -->
-                        <div class="dropdown-quick-switch">
-                            <div class="switch-title">Quick Switch Persona:</div>
-                            <div class="switch-buttons">
-                                <button type="button" class="switch-pill switch-cit" onclick="app.quickDemoLogin('citizen')">Citizen</button>
-                                <button type="button" class="switch-pill switch-off" onclick="app.quickDemoLogin('officer')">Officer</button>
-                                <button type="button" class="switch-pill switch-adm" onclick="app.quickDemoLogin('admin')">Admin</button>
-                            </div>
-                        </div>
-
-                        <div class="dropdown-divider"></div>
-
-                        <button type="button" class="dropdown-signout-btn" onclick="app.logout()">
-                            <span>🚪 Sign Out</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="auth-buttons-unauthed" id="auth-unauthed-cta">
-                    <span class="badge-lang">EN</span>
-                    <span class="badge-lang">हिन्दी</span>
-                    <span class="badge-lang">తెలుగు</span>
-                </div>
             </div>
-        </div>
-    </header>
+        </aside>
 
-    <!-- Main Content Viewport -->
-    <main class="app-viewport">
-
-        <!-- ======================================================== -->
-        <!-- SCREEN 1: Authentication View (Matching Reference Hero)  -->
-        <!-- ======================================================== -->
-        <section class="view-section" id="view-auth">
-            <div class="split-hero-container">
-
-                <!-- Left Column: Branding, Hero NLP, Stats & Academic Attribution -->
-                <div class="hero-left-column">
-                    <!-- Top Brand & Language Bar -->
-                    <div class="hero-brand-bar">
-                        <div class="hero-brand-cluster">
-                            <div class="hero-brand-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
-                                    <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/>
-                                    <path d="M7 21h10"/>
-                                    <path d="M12 3v18"/>
-                                    <path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>
-                                </svg>
-                            </div>
-                            <div class="hero-brand-titles">
-                                <span class="hero-brand-name">Multilingual Civic Intelligence Platform</span>
-                                <span class="hero-brand-sub">B.Tech Capstone Project</span>
-                            </div>
-                        </div>
-
-                        <div class="hero-lang-dropdown">
-                            <button type="button" class="lang-selector-btn" onclick="app.cycleLanguage()" title="Switch Language (English / हिन्दी / తెలుగు)">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="2" y1="12" x2="22" y2="12"/>
-                                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                                </svg>
-                                <span id="hero-active-lang">English</span>
-                                <span class="caret-down">▾</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Category Feature Tag -->
-                    <div class="hero-tag-pill">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
-                        </svg>
-                        <span>Multilingual Civic Grievance Triage & Urgency Ranking</span>
-                    </div>
-
-                    <!-- Large Display Headline -->
-                    <h1 class="hero-giant-title">
-                        Real–Time<br>
-                        Civic Grievance Triage &<br>
-                        Urgency<br>
-                        Ranking.
-                    </h1>
-
-                    <!-- Descriptive Subtitle -->
-                    <p class="hero-giant-desc">
-                        Explainable, air-gapped civic grievance intelligence for municipal administration. Instant zero-loss persistence, local neural triage across English, Hindi, and Telugu, deterministic safety escalation (High > Medium > Low), and prioritized officer queues.
-                    </p>
-
-                    <div class="hero-divider-line"></div>
-
-                    <!-- 3 Glass Stats Cards Row -->
-                    <div class="hero-stats-row">
-                        <div class="hero-stat-card">
-                            <div class="stat-number">380+</div>
-                            <div class="stat-label">Seeded Grievances</div>
-                        </div>
-                        <div class="hero-stat-card">
-                            <div class="stat-number">94.2%</div>
-                            <div class="stat-label">Triage Accuracy</div>
-                        </div>
-                        <div class="hero-stat-card">
-                            <div class="stat-number">3 Langs</div>
-                            <div class="stat-label">English • हिन्दी • తెలుగు</div>
-                        </div>
-                    </div>
-
-                    <!-- Bottom Academic Attribution -->
-                    <div class="hero-academic-footer">
-                        CivicTriage Municipal Intelligence System • Department of Computer Science & Engineering
-                    </div>
-                </div>
-
-
-                <!-- Right Column: Access Portal Floating Card -->
-                <div class="hero-right-column">
-                    <div class="portal-auth-card">
-                        <div class="portal-card-header">
-                            <h2 class="portal-card-title">Access Portal</h2>
-                            <p class="portal-card-subtitle">Sign in with your role-authorized credentials</p>
-                        </div>
-
-                        <!-- Segmented Role Selector -->
-                        <div class="role-selector-bar" role="tablist">
-                            <button type="button" class="role-segment-btn active" id="role-btn-citizen" onclick="app.selectAuthRole('citizen')">
-                                👤 Citizen
-                            </button>
-                            <button type="button" class="role-segment-btn" id="role-btn-admin" onclick="app.selectAuthRole('admin')">
-                                🏛️ Admin
-                            </button>
-                        </div>
-
-                        <!-- Sign In Form -->
-                        <div id="tab-login-content">
-                            <form id="form-login" onsubmit="app.handleLogin(event)">
-                                <div class="form-group-field">
-                                    <label class="field-label" for="login-email">Official Identifier / Email</label>
-                                    <div class="field-input-wrapper">
-                                        <span class="field-icon">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                                                <circle cx="12" cy="7" r="4"/>
-                                            </svg>
-                                        </span>
-                                        <input type="email" id="login-email" class="portal-input" placeholder="citizen@example.com" required autocomplete="email" value="citizen@example.com">
-                                    </div>
-                                </div>
-
-                                <div class="form-group-field">
-                                    <div class="field-label-split">
-                                        <label class="field-label" for="login-password">Password</label>
-                                        <button type="button" class="link-forgot-pw" onclick="app.showForgotPwHelp()">Forgot Password?</button>
-                                    </div>
-                                    <div class="field-input-wrapper">
-                                        <span class="field-icon">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                            </svg>
-                                        </span>
-                                        <input type="password" id="login-password" class="portal-input" placeholder="••••••••" required autocomplete="current-password" value="Citizen123">
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="btn-portal-submit" id="btn-submit-login">
-                                    <span id="btn-submit-label">Sign In as CITIZEN</span>
-                                    <span class="submit-arrow">→</span>
-                                </button>
-                            </form>
-
-                            <div class="portal-switch-prompt">
-                                <span>Don't have a citizen account?</span>
-                                <button type="button" class="link-switch-auth" onclick="app.switchAuthTab('register')">Register here</button>
-                            </div>
-                        </div>
-
-                        <!-- Registration Form (Toggled) -->
-                        <div id="tab-register-content" style="display: none;">
-                            <form id="form-register" onsubmit="app.handleRegister(event)">
-                                <div class="form-group-field">
-                                    <label class="field-label" for="reg-name">Full Name</label>
-                                    <div class="field-input-wrapper">
-                                        <span class="field-icon">👤</span>
-                                        <input type="text" id="reg-name" class="portal-input" placeholder="e.g. Ramesh Kumar" required>
-                                    </div>
-                                </div>
-                                <div class="form-group-field">
-                                    <label class="field-label" for="reg-email">Official Email Address</label>
-                                    <div class="field-input-wrapper">
-                                        <span class="field-icon">✉️</span>
-                                        <input type="email" id="reg-email" class="portal-input" placeholder="e.g. ramesh@example.com" required autocomplete="email">
-                                    </div>
-                                </div>
-                                <div class="form-group-field">
-                                    <label class="field-label" for="reg-password">Password (Minimum 6 characters)</label>
-                                    <div class="field-input-wrapper">
-                                        <span class="field-icon">🔒</span>
-                                        <input type="password" id="reg-password" class="portal-input" placeholder="Create password" minlength="6" required autocomplete="new-password">
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="btn-portal-submit" id="btn-submit-register">
-                                    <span>Create Citizen Account</span>
-                                    <span class="submit-arrow">→</span>
-                                </button>
-                            </form>
-
-                            <div class="portal-switch-prompt">
-                                <span>Already registered?</span>
-                                <button type="button" class="link-switch-auth" onclick="app.switchAuthTab('login')">Sign in with password</button>
-                            </div>
-                        </div>
-
-                        <!-- Quick 1-Click Demo Accounts Section -->
-                        <div class="demo-accounts-tray">
-                            <span class="demo-tray-label">QUICK 1-CLICK DEMO ACCOUNTS:</span>
-                            <div class="demo-pill-row">
-                                <button type="button" class="demo-quick-pill pill-cit" onclick="app.quickDemoLogin('citizen')" title="1-Click Login as Citizen">
-                                    👤 Citizen
-                                </button>
-                                <button type="button" class="demo-quick-pill pill-adm" onclick="app.quickDemoLogin('admin')" title="1-Click Login as Admin">
-                                    🏛️ Admin
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-        </section>
+        <!-- Main Workspace Viewport -->
+        <main class="app-workspace" id="app-workspace">
 
 
         <!-- ======================================================== -->
-        <!-- SCREEN 2: Citizen Portal (Submit & Track Receipts)       -->
+        <!-- SCREEN 2: Citizen Portal (Matching Screenshot 2)         -->
         <!-- ======================================================== -->
         <section class="view-section" id="view-citizen" style="display: none;">
-            <div class="view-header">
-                <div>
-                    <h1 class="view-title">Citizen Portal</h1>
-                    <p class="view-subtitle">
-                        Report civic issues in your native language with guaranteed immediate persistence and real-time tracking.
-                    </p>
-                </div>
-                <div class="view-meta-badge">
-                    <span class="user-greeting" id="citizen-greeting-text">Logged in</span>
-                </div>
+            <div class="st-view-header">
+                <h1 class="st-view-title">Citizen Portal</h1>
+                <p class="st-view-greeting" id="citizen-greeting-text">
+                    Welcome, Ramesh Sharma (Citizen) (citizen@example.com)
+                </p>
             </div>
 
-            <!-- Citizen Sub-navigation -->
-            <div class="sub-nav-tabs">
-                <button type="button" class="sub-tab-btn active" id="subtab-submit-btn" onclick="app.switchCitizenSubtab('submit')">
+            <!-- Streamlit-Style Sub-Navigation Tabs -->
+            <div class="st-subtabs" role="tablist">
+                <button type="button" class="st-subtab-btn active" id="subtab-submit-btn" onclick="app.switchCitizenSubtab('submit')">
                     📢 Submit New Grievance
                 </button>
-                <button type="button" class="sub-tab-btn" id="subtab-history-btn" onclick="app.switchCitizenSubtab('history')">
-                    📋 My Grievances History (<span id="citizen-count-badge">0</span>)
+                <button type="button" class="st-subtab-btn" id="subtab-history-btn" onclick="app.switchCitizenSubtab('history')">
+                    📂 My Grievances History (<span id="citizen-count-badge">0</span>)
                 </button>
             </div>
 
             <!-- Tab 1: Submit Form -->
-            <div class="citizen-subcontent" id="citizen-subcontent-submit">
-                <div class="portal-grid">
-                    <div class="portal-card form-card">
-                        <div class="card-header">
-                            <h2 class="card-title">Report a Civic Grievance</h2>
-                            <p class="card-caption">
-                                Type your complaint in <b>English, Hindi (हिन्दी), or Telugu (తెలుగు)</b>. Our automated triage engine will determine urgency, classify the municipal department, and alert responding teams.
-                            </p>
+            <div class="st-citizen-subcontent" id="citizen-subcontent-submit">
+                <div class="st-form-panel">
+                    <h2 class="st-section-title">Report a Civic Issue</h2>
+                    <p class="st-section-desc">
+                        Describe the issue in English, Hindi (हिन्दी), or Telugu (తెలుగు). Our automated triage engine determines urgency and alerts the municipal department.
+                    </p>
+
+                    <!-- Quick Test Presets (Matching Screenshot 2) -->
+                    <div class="st-quick-samples-cluster">
+                        <span class="st-quick-samples-title">✨ Quick Test Samples (Click to load):</span>
+                        <div class="st-quick-samples-row">
+                            <button type="button" class="st-sample-btn" onclick="app.loadSample('live_wire')" title="Autofill high-urgency electric hazard complaint">
+                                ⚡ Live Wire (English)
+                            </button>
+                            <button type="button" class="st-sample-btn" onclick="app.loadSample('water_hi')" title="Autofill municipal water disruption in Hindi">
+                                💧 Water Supply (हिन्दी)
+                            </button>
+                            <button type="button" class="st-sample-btn" onclick="app.loadSample('manhole_te')" title="Autofill open manhole hazard in Telugu">
+                                🕳️ Open Manhole (తెలుగు)
+                            </button>
                         </div>
-
-                        <!-- Quick Test Presets -->
-                        <div class="preset-samples-box">
-                            <span class="preset-title">✨ Quick Test Samples (Click to autofill):</span>
-                            <div class="preset-btn-group">
-                                <button type="button" class="btn btn-preset" onclick="app.loadSample('live_wire')">
-                                    ⚡ Live Wire Snap (English)
-                                </button>
-                                <button type="button" class="btn btn-preset" onclick="app.loadSample('water_hi')">
-                                    💧 Water Supply Outage (हिन्दी)
-                                </button>
-                                <button type="button" class="btn btn-preset" onclick="app.loadSample('manhole_te')">
-                                    🕳️ Open Manhole Danger (తెలుగు)
-                                </button>
-                            </div>
-                        </div>
-
-                        <form id="form-grievance-submit" onsubmit="app.handleGrievanceSubmit(event)">
-                            <div class="form-row">
-                                <div class="form-group flex-1">
-                                    <label for="grievance-ward">Municipal Ward / Zone *</label>
-                                    <select id="grievance-ward" class="form-select" onchange="app.handleWardChange(this.value)">
-                                        <!-- Populated via JS -->
-                                    </select>
-                                </div>
-                                <div class="form-group flex-1" id="custom-ward-group" style="display: none;">
-                                    <label for="grievance-custom-ward">Specify Locality / Ward Name *</label>
-                                    <input type="text" id="grievance-custom-ward" class="form-input" placeholder="e.g. Gandhi Nagar, Sector 4">
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="label-with-meta">
-                                    <label for="grievance-text">Describe the Grievance *</label>
-                                    <span class="char-count" id="grievance-char-count">0 characters</span>
-                                </div>
-                                <textarea id="grievance-text" class="form-textarea" rows="4"
-                                    placeholder="Example: An electric wire snapped and fell into a puddle outside the school gate / हमारे इलाके में 4 दिन से पीने का पानी नहीं आया है / రోడ్డుపై డ్రైనేజ్ మూత తెరిచి ఉంది..."
-                                    required oninput="app.updateCharCount(this.value)"></textarea>
-                            </div>
-
-                            <div class="form-action-footer">
-                                <button type="submit" class="btn btn-primary btn-lg" id="btn-submit-grievance">
-                                    🚀 Submit Grievance Immediately
-                                </button>
-                            </div>
-                        </form>
                     </div>
 
-                    <!-- Side Info Card -->
-                    <div class="portal-card info-card">
-                        <h3 class="side-info-title">🛡️ How CivicTriage Protects You</h3>
-                        <ul class="info-checklist">
-                            <li>
-                                <strong>Immediate Persistence (FR1):</strong> Your complaint is saved with guaranteed <code>Received</code> status before classification begins. Zero data loss.
-                            </li>
-                            <li>
-                                <strong>Multilingual Understanding (FR2):</strong> Native text is processed in English, Hindi, and Telugu without requiring pre-translation.
-                            </li>
-                            <li>
-                                <strong>Safety Escalation (FR4):</strong> Critical safety keywords strictly escalate life-threatening risks to <code>Immediate</code> urgency.
-                            </li>
-                            <li>
-                                <strong>Transparent Tracking (FR6):</strong> You will see live inspection notes appended by responding municipal officers.
-                            </li>
-                        </ul>
-                    </div>
+                    <!-- Submission Form -->
+                    <form id="form-grievance-submit" onsubmit="app.handleGrievanceSubmit(event)">
+                        <div class="st-form-group">
+                            <label class="st-field-label" for="grievance-ward">Select Ward / Zone</label>
+                            <select id="grievance-ward" class="st-dropdown-select" onchange="app.handleWardChange(this.value)">
+                                <!-- Populated dynamically from API -->
+                            </select>
+                        </div>
+
+                        <div class="st-form-group" id="custom-ward-group" style="display: none;">
+                            <label class="st-field-label" for="grievance-custom-ward">Specify Locality / Ward Name *</label>
+                            <input type="text" id="grievance-custom-ward" class="st-text-input" placeholder="e.g. Gandhi Nagar, Sector 4">
+                        </div>
+
+                        <div class="st-form-group">
+                            <div class="st-field-label-row">
+                                <label class="st-field-label" for="grievance-text">Describe the Grievance *</label>
+                                <span class="st-char-count" id="grievance-char-count">0 characters</span>
+                            </div>
+                            <textarea id="grievance-text" class="st-textarea-field" rows="4"
+                                placeholder="Example: A live electric wire has snapped near the playground /पानी की पाइपलाइन फट गई है / మా కాలనీలో 4 రోజులుగా నీరు రావడం లేదు..."
+                                required oninput="app.updateCharCount(this.value)"></textarea>
+                        </div>
+
+                        <button type="submit" class="st-btn-submit-full" id="btn-submit-grievance">
+                            Submit Grievance Immediately
+                        </button>
+                    </form>
+
+                    <!-- Instant Receipt Box (Revealed after submission) -->
+                    <div id="grievance-submission-result" class="st-submission-result-box" style="display: none;"></div>
+                </div>
+
+                <!-- Protective Principles Card -->
+                <div class="st-info-panel">
+                    <h3 class="st-info-title">🛡️ How CivicTriage Protects You</h3>
+                    <ul class="st-info-list">
+                        <li>
+                            <strong>Immediate Persistence (FR1):</strong> Your complaint is saved with guaranteed <code>Received</code> status before classification begins. Zero data loss.
+                        </li>
+                        <li>
+                            <strong>Multilingual Understanding (FR2):</strong> Native text is processed in English, Hindi, and Telugu without requiring pre-translation.
+                        </li>
+                        <li>
+                            <strong>Safety Escalation (FR4):</strong> Critical safety keywords strictly escalate life-threatening risks to <code>Immediate</code> urgency.
+                        </li>
+                        <li>
+                            <strong>Transparent Tracking (FR6):</strong> You will see live inspection notes appended by responding municipal officers.
+                        </li>
+                    </ul>
                 </div>
             </div>
 
@@ -483,16 +324,11 @@
         <!-- SCREEN 3: Officer Triage Queue (Ranked Queue & Updates)  -->
         <!-- ======================================================== -->
         <section class="view-section" id="view-officer" style="display: none;">
-            <div class="view-header">
-                <div>
-                    <h1 class="view-title">Admin Triage Queue</h1>
-                    <p class="view-subtitle">
-                        Ranked triage queue sorted strictly by urgency (<b>High > Medium > Low</b>) and age (oldest first).
-                    </p>
-                </div>
-                <div class="view-meta-badge">
-                    <span class="officer-greeting" id="officer-greeting-text">Municipal Inspector</span>
-                </div>
+            <div class="st-view-header">
+                <h1 class="st-view-title">Officer Triage Queue</h1>
+                <p class="st-view-greeting" id="officer-greeting-text">
+                    Municipal Inspector
+                </p>
             </div>
 
             <!-- Metric KPI Cards -->
@@ -611,14 +447,14 @@
         <!-- SCREEN 4: Insights & Analytics Dashboard                 -->
         <!-- ======================================================== -->
         <section class="view-section" id="view-insights" style="display: none;">
-            <div class="view-header">
+            <div class="st-view-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
-                    <h1 class="view-title">Civic Triage Insights & Analytics</h1>
-                    <p class="view-subtitle">
+                    <h1 class="st-view-title">Civic Triage Insights & Analytics</h1>
+                    <p class="st-view-greeting">
                         Aggregated distribution metrics across municipal categories, urgency levels, and zones.
                     </p>
                 </div>
-                <div class="view-header-actions">
+                <div class="view-header-actions" style="display: flex; gap: 0.5rem;">
                     <button type="button" class="btn btn-outline" onclick="app.exportCSV()" id="btn-export-csv">
                         📥 Export All Data (CSV)
                     </button>
@@ -714,6 +550,7 @@
         </section>
 
     </main>
+    </div> <!-- Close app-layout -->
 
 
     <!-- ======================================================== -->

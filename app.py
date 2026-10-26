@@ -37,8 +37,12 @@ from core.lang import detect_language
 
 load_dotenv()
 
-# Initialize Database tables and indexes
-init_db()
+# Initialize Database tables and indexes safely
+try:
+    init_db()
+except Exception as e:
+    import logging
+    logging.getLogger("CivicTriage").warning(f"Initial DB init warning: {e}")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "civic-triage-super-secret-key-2026-btech-capstone")
 serializer = URLSafeTimedSerializer(SECRET_KEY)
@@ -58,6 +62,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def on_startup():
+    """Ensure database tables and demo data are initialized on worker startup."""
+    try:
+        init_db()
+    except Exception as e:
+        import logging
+        logging.getLogger("CivicTriage").warning(f"Startup DB init warning: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -541,6 +555,12 @@ async def api_export_csv(user: Dict[str, Any] = Depends(get_current_user)):
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Return 204 No Content for favicon to prevent 500 or SPA catch-all errors."""
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.get("/", response_class=HTMLResponse)
