@@ -64,6 +64,43 @@ app.add_middleware(
 )
 
 
+class VercelPathMiddleware:
+    """
+    ASGI middleware to restore the original client request path on Vercel.
+    When Vercel rewrites incoming traffic to /api/index.py, headers like 'x-forwarded-uri',
+    'x-matched-path', or 'x-invoke-path' convey the client's actual requested URL path.
+    """
+
+    def __init__(self, inner_app):
+        self.inner_app = inner_app
+
+    async def __call__(self, scope, receive, send):
+        if scope.get("type") == "http":
+            raw_headers = dict(scope.get("headers", []))
+            forwarded_uri = (
+                raw_headers.get(b"x-forwarded-uri")
+                or raw_headers.get(b"x-matched-path")
+                or raw_headers.get(b"x-invoke-path")
+            )
+
+            if forwarded_uri:
+                decoded = forwarded_uri.decode("utf-8", errors="ignore").split("?")[0]
+                if decoded:
+                    scope["path"] = decoded
+
+            # If path matches serverless entrypoint directly, treat as root index
+            if scope.get("path") in ("/api/index.py", "/api/index", "/api/index/"):
+                scope["path"] = "/"
+
+            if "raw_path" in scope and isinstance(scope.get("path"), str):
+                scope["raw_path"] = scope["path"].encode("ascii", errors="ignore")
+
+        await self.inner_app(scope, receive, send)
+
+
+app.add_middleware(VercelPathMiddleware)
+
+
 @app.on_event("startup")
 async def on_startup():
     """Ensure database tables and demo data are initialized on worker startup."""
@@ -552,7 +589,12 @@ async def api_export_csv(user: Dict[str, Any] = Depends(get_current_user)):
 # ---------------------------------------------------------------------------
 # Static Web App & Fallback Frontend Routes
 # ---------------------------------------------------------------------------
-static_dir = os.path.join(os.path.dirname(__file__), "static")
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if not os.path.exists(static_dir):
+    alt_dir = os.path.join(os.getcwd(), "static")
+    if os.path.exists(alt_dir):
+        static_dir = alt_dir
+
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
@@ -563,6 +605,8 @@ async def favicon():
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@app.get("/api/index.py", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
 @app.get("/", response_class=HTMLResponse)
 async def serve_index():
     """Serve the modern web interface."""
@@ -577,8 +621,12 @@ async def serve_index():
 @app.get("/{full_path:path}", response_class=HTMLResponse)
 async def catch_all(full_path: str):
     """Route all web requests to the SPA index page."""
-    # Ignore API routes
-    if full_path.startswith("api/") or full_path.startswith("static/"):
+    clean_path = full_path.strip("/")
+    # Handle known Vercel rewritten paths
+    if clean_path in ("api/index.py", "api/index", "api", "index.html", ""):
+        return await serve_index()
+    # Ignore API routes and static paths that genuinely do not exist
+    if clean_path.startswith("api/") or clean_path.startswith("static/"):
         raise HTTPException(status_code=404, detail="Endpoint not found")
     index_file = os.path.join(static_dir, "index.html")
     if os.path.exists(index_file):
